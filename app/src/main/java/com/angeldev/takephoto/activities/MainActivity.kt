@@ -1,7 +1,6 @@
 package com.angeldev.takephoto.activities
 
 import android.Manifest
-import android.R.attr.data
 import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -103,15 +102,14 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                 intent = Intent(Intent.ACTION_PICK)
                 intent.type = "image/*"
                 intent.action = Intent.ACTION_GET_CONTENT
-//                startActivityForResult(Intent.createChooser(intent, "Select Picture"), PICK_IMAGE)
 
 //            val intent = Intent(MediaStore.ACTION_PICK_IMAGES)
 //            val mediaSelectionLimit = 1
 //            intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, mediaSelectionLimit)
             }
 
-            takePictureIntent.launch(Intent.createChooser(intent, "Select Picture"))
-//            takePictureIntent.launch(intent)
+//            takePictureIntent.launch(Intent.createChooser(intent, "Select Picture"))
+            takePictureIntent.launch(intent)
         }
     }
 
@@ -131,11 +129,19 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 //            val list = it.data
             val data = activity.data
 
-            if (data != null) {
+            if (data?.data != null) {
                 setPictureWithUri(data.data!!)
             } else {
                 setPicture()
             }
+
+//            data?.data?.let {
+//                println("not null")
+//                setPictureWithUri(data.data!!)
+//            } ?: run {
+//                println("null")
+//                setPicture()
+//            }
         } else {
             deleteLocalPhotoFile(currentPhotoPath)
         }
