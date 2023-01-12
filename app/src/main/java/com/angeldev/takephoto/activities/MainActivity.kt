@@ -15,7 +15,11 @@ import android.provider.Settings
 import android.util.Log
 import android.view.View
 import android.widget.Toast
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
+import androidx.activity.result.launch
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -25,6 +29,8 @@ import androidx.navigation.ui.AppBarConfiguration
 import com.angeldev.takephoto.BuildConfig
 import com.angeldev.takephoto.R
 import com.angeldev.takephoto.databinding.ActivityMainBinding
+import com.angeldev.takephoto.mvvms.AppViewModel
+import com.angeldev.takephoto.utils.PickSinglePhotoContract
 import com.google.android.material.snackbar.Snackbar
 import java.io.File
 import java.io.FileNotFoundException
@@ -43,6 +49,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     private lateinit var currentPhotoPath: String
     private val storagePermissionCode  = 1000
     private val cameraPermissionCode  = 1001
+    private val viewModel by viewModels<AppViewModel>()
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -92,24 +100,23 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                 ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), storagePermissionCode)
             }
         } else  {
+
             val intent: Intent
             val photoFile = createImageFile()
             if (type == CAMERA) {
                 intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
                 val photoURI: Uri = FileProvider.getUriForFile(this, "${BuildConfig.APPLICATION_ID}$AUTHORITY_SUFFIX", photoFile)
                 intent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI)
+                takePictureIntent.launch(intent)
             } else {
-                intent = Intent(Intent.ACTION_PICK)
-                intent.type = "image/*"
-                intent.action = Intent.ACTION_GET_CONTENT
-
-//            val intent = Intent(MediaStore.ACTION_PICK_IMAGES)
-//            val mediaSelectionLimit = 1
-//            intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, mediaSelectionLimit)
+                pickSinglePhoto()
+//                intent = Intent(MediaStore.ACTION_PICK_IMAGES)
+//                intent = Intent(Intent.ACTION_PICK)
+//                intent.type = "image/*"
+//                intent.action = Intent.ACTION_GET_CONTENT
             }
-
 //            takePictureIntent.launch(Intent.createChooser(intent, "Select Picture"))
-            takePictureIntent.launch(intent)
+//            takePictureIntent.launch(intent)
         }
     }
 
@@ -123,6 +130,21 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         )
             .apply { currentPhotoPath = absolutePath }
     }
+
+//    private val singlePhotoPickerLauncher = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { imageUri: Uri? ->
+//        imageUri?.let(viewModel::setImageUri)
+//    }
+//
+//    private fun pickPhoto() {
+//        singlePhotoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+//    }
+
+    private val singlePhotoPickerLauncher = registerForActivityResult(PickSinglePhotoContract()) { imageUri: Uri? ->
+        imageUri?.let(viewModel::setImageUri)
+        binding.imgView.setImageURI(imageUri)
+    }
+
+    private fun pickSinglePhoto() = singlePhotoPickerLauncher.launch()
 
     private val takePictureIntent = registerForActivityResult(StartActivityForResult()) { activity ->
         if (activity.resultCode == RESULT_OK) {
