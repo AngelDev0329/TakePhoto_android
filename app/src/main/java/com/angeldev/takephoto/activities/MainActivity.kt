@@ -126,7 +126,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
     private val takePictureIntent = registerForActivityResult(StartActivityForResult()) { activity ->
         if (activity.resultCode == RESULT_OK) {
-//            val list = it.data
+//            val list = activity.data
             val data = activity.data
 
             if (data?.data != null) {
@@ -136,10 +136,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
             }
 
 //            data?.data?.let {
-//                println("not null")
 //                setPictureWithUri(data.data!!)
 //            } ?: run {
-//                println("null")
 //                setPicture()
 //            }
         } else {
