@@ -1,6 +1,10 @@
 <resources>
     <string name="app_name">TakePhoto</string>
 
+    <string name="OK">OK</string>
+    <string name="Cancel">Cancel</string>
+    <string name="we_need_to_access">We need to access the camera, but the current permission is denied. Would you like to go to the app settings?</string>
+
 
 
 
