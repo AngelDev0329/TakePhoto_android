@@ -1,6 +1,7 @@
 package com.angeldev.takephoto.activities
 
 import android.Manifest
+import android.R.attr.data
 import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -14,7 +15,8 @@ import android.provider.MediaStore
 import android.provider.Settings
 import android.util.Log
 import android.view.View
-import androidx.activity.result.contract.ActivityResultContracts
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -26,7 +28,9 @@ import com.angeldev.takephoto.R
 import com.angeldev.takephoto.databinding.ActivityMainBinding
 import com.google.android.material.snackbar.Snackbar
 import java.io.File
+import java.io.FileNotFoundException
 import java.io.IOException
+import java.io.InputStream
 import java.lang.Math.max
 import java.lang.Math.min
 import java.text.SimpleDateFormat
@@ -38,8 +42,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var binding: ActivityMainBinding
     private lateinit var currentPhotoPath: String
+    private val storagePermissionCode  = 1000
     private val cameraPermissionCode  = 1001
-    private val TAG  = "MainActivity"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,7 +52,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         setContentView(binding.root)
 
         setSupportActionBar(binding.toolbar)
-        binding.fab.setOnClickListener(this)
+        binding.fabCamera.setOnClickListener(this)
+        binding.fabGallery.setOnClickListener(this)
 
 //        val navController = findNavController(R.id.nav_host_fragment_content_main)
 //        appBarConfiguration = AppBarConfiguration(navController.graph)
@@ -57,11 +62,14 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
     override fun onClick(view: View?) {
         when (view!!.id) {
-            R.id.fab -> {
-                launchTakeImageIntent()
+            R.id.fab_camera -> {
+                launchTakeImageIntent(CAMERA)
 //                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
 //                    .setAnchorView(R.id.fab)
 //                    .setAction("Action", null).show()
+            }
+            R.id.fab_gallery -> {
+                launchTakeImageIntent(GALLERY)
             }
             else -> {
                 Snackbar.make(view, "Replace with your own action" + view.id.toString(), Snackbar.LENGTH_LONG).setAction("Action", null).show()
@@ -69,14 +77,41 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         }
     }
 
-    private fun launchTakeImageIntent() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA), cameraPermissionCode)
-        } else {
-            val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-            val photoURI: Uri = FileProvider.getUriForFile(this, "${BuildConfig.APPLICATION_ID}$AUTHORITY_SUFFIX", createImageFile())
-            intent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI)
-            takePictureIntent.launch(intent)
+    private fun isDisabledStoragePermission(): Boolean {
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun isDisabledCameraPermission(): Boolean {
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun launchTakeImageIntent(type: String) {
+        if ((type == CAMERA && isDisabledCameraPermission()) || (type == GALLERY && isDisabledStoragePermission())) {
+            if (type == CAMERA) {
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA), cameraPermissionCode)
+            } else {
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), storagePermissionCode)
+            }
+        } else  {
+            val intent: Intent
+            val photoFile = createImageFile()
+            if (type == CAMERA) {
+                intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+                val photoURI: Uri = FileProvider.getUriForFile(this, "${BuildConfig.APPLICATION_ID}$AUTHORITY_SUFFIX", photoFile)
+                intent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI)
+            } else {
+                intent = Intent(Intent.ACTION_PICK)
+                intent.type = "image/*"
+                intent.action = Intent.ACTION_GET_CONTENT
+//                startActivityForResult(Intent.createChooser(intent, "Select Picture"), PICK_IMAGE)
+
+//            val intent = Intent(MediaStore.ACTION_PICK_IMAGES)
+//            val mediaSelectionLimit = 1
+//            intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, mediaSelectionLimit)
+            }
+
+            takePictureIntent.launch(Intent.createChooser(intent, "Select Picture"))
+//            takePictureIntent.launch(intent)
         }
     }
 
@@ -91,12 +126,16 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
             .apply { currentPhotoPath = absolutePath }
     }
 
-    private val takePictureIntent = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-        if (it.resultCode == RESULT_OK) {
+    private val takePictureIntent = registerForActivityResult(StartActivityForResult()) { activity ->
+        if (activity.resultCode == RESULT_OK) {
 //            val list = it.data
-            val uri = it?.data
-            Log.d(TAG, uri.toString())
-            setPicture()
+            val data = activity.data
+
+            if (data != null) {
+                setPictureWithUri(data.data!!)
+            } else {
+                setPicture()
+            }
         } else {
             deleteLocalPhotoFile(currentPhotoPath)
         }
@@ -105,9 +144,17 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String?>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         when (requestCode) {
+            storagePermissionCode -> {
+                if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    launchTakeImageIntent(GALLERY)
+                } else {
+                    gotoSystemSetting(R.string.we_need_to_access)
+                }
+                return
+            }
             cameraPermissionCode -> {
                 if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    launchTakeImageIntent()
+                    launchTakeImageIntent(CAMERA)
                 } else {
                     gotoSystemSetting(R.string.we_need_to_access)
                 }
@@ -147,6 +194,24 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         }
     }
 
+    private fun setPictureWithUri(imageUri: Uri) {
+        try {
+            val imageStream: InputStream? = contentResolver.openInputStream(imageUri)
+            val selectedImage = BitmapFactory.decodeStream(imageStream)
+            val degree: Int = getRotateDegreeFromExif(imageUri.path!!)
+            val matrix = Matrix()
+            matrix.setRotate(degree.toFloat())
+            val rotatedImage: Bitmap = Bitmap.createBitmap(
+                selectedImage, 0, 0,
+                selectedImage.width, selectedImage.height, matrix, true
+            )
+            binding.imgView.setImageBitmap(rotatedImage)
+        } catch (e: FileNotFoundException) {
+            e.printStackTrace()
+            Toast.makeText(this, "Something went wrong", Toast.LENGTH_LONG).show()
+        }
+    }
+
     private fun getRotateDegreeFromExif(filePath: String): Int {
         var degree = 0
         try {
@@ -176,6 +241,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     private fun gotoSystemSetting(message: Int) {
         gotoSystemSetting(getString(message))
     }
+
     private fun gotoSystemSetting(message: String) {
         AlertDialog.Builder(this)
             .setTitle(R.string.app_name)
@@ -221,11 +287,15 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 //    }
 
     companion object {
+        const val TAG  = "MainActivity"
+        const val GALLERY = "gallery"
+        const val CAMERA = "camera"
         const val DATE_FORMAT = "yyyyMMdd_HHmmss"
         const val FILE_NAMING_PREFIX = "JPEG_"
         const val FILE_NAMING_SUFFIX = "_"
         const val FILE_FORMAT = ".jpg"
         const val AUTHORITY_SUFFIX = ".fileprovider"
+
 //        const val AUTHORITY_SUFFIX = ".cropper.fileprovider"
     }
 }
