@@ -11,15 +11,11 @@ import androidx.activity.result.contract.ActivityResultContract
 private const val MIME_TYPE_IMAGE = "image/*"
 
 class PickMultiplePhotosContract : ActivityResultContract<Unit, List<Uri>>() {
-
     override fun createIntent(context: Context, input: Unit): Intent {
-
         return if (PhotoPickerAvailabilityChecker.isPhotoPickerAvailable()) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                Intent(MediaStore.ACTION_PICK_IMAGES).putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, MediaStore.getPickImagesMaxLimit())
-            } else {
-                TODO("VERSION.SDK_INT < TIRAMISU")
-            }
+            val mediaSelectionLimit = 1
+            Intent(MediaStore.ACTION_PICK_IMAGES).putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, mediaSelectionLimit)
+//            Intent(MediaStore.ACTION_PICK_IMAGES).putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, MediaStore.getPickImagesMaxLimit())
         } else {
             Intent(Intent.ACTION_OPEN_DOCUMENT).putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
         }.apply { type = MIME_TYPE_IMAGE }
