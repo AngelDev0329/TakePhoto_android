@@ -11,11 +11,11 @@ import androidx.activity.result.contract.ActivityResultContract
 private const val MIME_TYPE_IMAGE = "image/*"
 
 class PickSinglePhotoContract: ActivityResultContract<Void?, Uri?>() {
-
     override fun createIntent(context: Context, input: Void?): Intent {
 
         return Intent(if (PhotoPickerAvailabilityChecker.isPhotoPickerAvailable()) {
             Intent(MediaStore.ACTION_PICK_IMAGES)
+//            Intent(Intent.ACTION_PICK)
         } else {
             Intent(Intent.ACTION_OPEN_DOCUMENT)
         }).apply { type = MIME_TYPE_IMAGE }
