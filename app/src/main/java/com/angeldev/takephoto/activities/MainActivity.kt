@@ -100,23 +100,24 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                 ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), storagePermissionCode)
             }
         } else  {
-
             val intent: Intent
-            val photoFile = createImageFile()
+
             if (type == CAMERA) {
+                val photoFile = createImageFile()
                 intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
                 val photoURI: Uri = FileProvider.getUriForFile(this, "${BuildConfig.APPLICATION_ID}$AUTHORITY_SUFFIX", photoFile)
                 intent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI)
-                takePictureIntent.launch(intent)
+//                takePictureIntent.launch(intent)
             } else {
-                pickSinglePhoto()
+//                pickSinglePhoto()
 //                intent = Intent(MediaStore.ACTION_PICK_IMAGES)
+                intent = Intent(MediaStore.ACTION_PICK_IMAGES, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
 //                intent = Intent(Intent.ACTION_PICK)
-//                intent.type = "image/*"
-//                intent.action = Intent.ACTION_GET_CONTENT
+                intent.type = "image/*"
+                intent.action = Intent.ACTION_GET_CONTENT
             }
 //            takePictureIntent.launch(Intent.createChooser(intent, "Select Picture"))
-//            takePictureIntent.launch(intent)
+            takePictureIntent.launch(intent)
         }
     }
 
@@ -148,11 +149,12 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
     private val takePictureIntent = registerForActivityResult(StartActivityForResult()) { activity ->
         if (activity.resultCode == RESULT_OK) {
-//            val list = activity.data
             val data = activity.data
 
             if (data?.data != null) {
-                setPictureWithUri(data.data!!)
+//                setPictureWithUri(data.data!!)
+                Log.d("photo_uri===>", data?.data?.path.toString())
+                binding.imgView.setImageURI(data?.data)
             } else {
                 setPicture()
             }
@@ -217,6 +219,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                 bitmap.width, bitmap.height, matrix, true
             )
             binding.imgView.setImageBitmap(rotatedImage)
+//            binding.imgView.setImageBitmap(bitmap)
         }
     }
 
