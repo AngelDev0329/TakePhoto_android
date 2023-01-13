@@ -31,6 +31,7 @@ import com.angeldev.takephoto.R
 import com.angeldev.takephoto.databinding.ActivityMainBinding
 import com.angeldev.takephoto.mvvms.AppViewModel
 import com.angeldev.takephoto.utils.PickSinglePhotoContract
+import com.angeldev.takephoto.utils.URIPathHelper
 import com.google.android.material.snackbar.Snackbar
 import java.io.File
 import java.io.FileNotFoundException
@@ -111,10 +112,10 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
             } else {
 //                pickSinglePhoto()
 //                intent = Intent(MediaStore.ACTION_PICK_IMAGES)
-                intent = Intent(MediaStore.ACTION_PICK_IMAGES, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+                intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
 //                intent = Intent(Intent.ACTION_PICK)
                 intent.type = "image/*"
-                intent.action = Intent.ACTION_GET_CONTENT
+//                intent.action = Intent.ACTION_GET_CONTENT
             }
 //            takePictureIntent.launch(Intent.createChooser(intent, "Select Picture"))
             takePictureIntent.launch(intent)
@@ -153,8 +154,10 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
             if (data?.data != null) {
 //                setPictureWithUri(data.data!!)
-                Log.d("photo_uri===>", data?.data?.path.toString())
-                binding.imgView.setImageURI(data?.data)
+                val sourceFileUri = data.data
+//                val pathFromUri = URIPathHelper().getPath(this, sourceFileUri!!)
+                Log.d("photo_uri===>", sourceFileUri?.path.toString())
+                binding.imgView.setImageURI(sourceFileUri)
             } else {
                 setPicture()
             }
