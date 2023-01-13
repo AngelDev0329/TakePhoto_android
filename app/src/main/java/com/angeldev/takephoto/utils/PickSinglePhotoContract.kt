@@ -17,7 +17,6 @@ private const val MIME_TYPE_IMAGE = "image/*"
 
 class PickSinglePhotoContract: ActivityResultContract<Void?, Uri?>() {
     override fun createIntent(context: Context, input: Void?): Intent {
-
         return Intent(if (PhotoPickerAvailabilityChecker.isPhotoPickerAvailable()) {
             Intent(MediaStore.ACTION_PICK_IMAGES)
 //            Intent(Intent.ACTION_PICK)
